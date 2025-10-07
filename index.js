@@ -102,6 +102,28 @@ async function run() {
             const result = await userCollection.find(query).toArray()
             res.send(result)
         })
+        // user admin ar janno---------
+        app.patch('/users/:id/role', async (req, res) => {
+            const { id } = req.params;
+            const { role } = req.body;
+
+            if (!["admin", "user"].includes(role)) {
+                return res.status(400).send({ message: "invalid role" })
+            }
+
+            const query = { _id: new ObjectId(id) }
+            const updatedoc = {
+                $set: {
+                    role,
+                }
+            }
+            const result=await userCollection.updateOne(query,updatedoc)
+            res.send(result)
+
+        })
+
+
+
 
         // parcel-------------------------------
         app.post('/parcels', async (req, res) => {
