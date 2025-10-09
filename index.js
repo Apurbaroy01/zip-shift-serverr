@@ -102,7 +102,7 @@ async function run() {
             const result = await userCollection.find(query).toArray()
             res.send(result)
         })
-        // user admin ar janno---------
+        // user admin make ar janno---------
         app.patch('/users/:id/role', async (req, res) => {
             const { id } = req.params;
             const { role } = req.body;
@@ -117,9 +117,25 @@ async function run() {
                     role,
                 }
             }
-            const result=await userCollection.updateOne(query,updatedoc)
+            const result = await userCollection.updateOne(query, updatedoc)
             res.send(result)
 
+        })
+
+        app.get('/users/:email/role', async (req, res) => {
+            const {email} = req.params;
+
+            if (!email) {
+                return res.status(400).send({ message: "email is requrd" })
+            }
+
+            const user = await userCollection.findOne({ email })
+
+            if (!user) {
+                return res.status(404).send({ message: "not user font" })
+            }
+
+            res.send({role: user.role || "user"})
         })
 
 
