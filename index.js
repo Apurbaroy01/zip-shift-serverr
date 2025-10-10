@@ -64,7 +64,7 @@ async function run() {
             }
             console.log("token:", token)
 
-            // verify token-----------
+            // verify token---
             try {
                 const decoded = await admin.auth().verifyIdToken(token)
                 req.decoded = decoded;
@@ -75,6 +75,17 @@ async function run() {
             }
 
 
+        }
+
+
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email }
+            const user = await userCollection.findOne(query)
+            if (user?.role !== "admin") {
+                return res.status(403).send({ message: "forbidden access" })
+            }
+            next();
         }
 
         // user---------------------
@@ -103,7 +114,7 @@ async function run() {
             res.send(result)
         })
         // user admin make ar janno---------
-        app.patch('/users/:id/role', async (req, res) => {
+        app.patch('/users/:id/role', verifyFBToken, verifyAdmin, async (req, res) => {
             const { id } = req.params;
             const { role } = req.body;
 
@@ -123,7 +134,7 @@ async function run() {
         })
 
         app.get('/users/:email/role', async (req, res) => {
-            const {email} = req.params;
+            const { email } = req.params;
 
             if (!email) {
                 return res.status(400).send({ message: "email is requrd" })
@@ -135,7 +146,7 @@ async function run() {
                 return res.status(404).send({ message: "not user font" })
             }
 
-            res.send({role: user.role || "user"})
+            res.send({ role: user.role || "user" })
         })
 
 
@@ -148,15 +159,33 @@ async function run() {
             res.send(result); no
         })
 
-        app.get('/parcels', async (req, res) => {
-            const userEmail = req.query.email;
-            const query = userEmail ? { email: userEmail } : {};
-            const options = {
-                sort: { creation_Date: - 1 }
+        app.get('/parcels',  async (req, res) => {
+            const { email, payment_status, delivery_status } = req.query;
+
+            let query = {};
+
+            if (email) {
+                query.email = email; 
             }
-            const result = await parcelCollection.find(query, options).toArray()
+
+            if (payment_status) {
+                query.payment_status = payment_status;
+            }
+
+            if (delivery_status) {
+                query.delivery_status = delivery_status;
+            }
+
+            const options = {
+                sort: { creation_Date: -1 } // ✅ fixed
+            }
+
+            const result = await parcelCollection.find(query, options).toArray();
+
             res.send(result);
+
         });
+
 
         app.get('/parcels/:id', async (req, res) => {
             const id = req.params.id;
@@ -238,7 +267,7 @@ async function run() {
         });
 
 
-        app.get('/payment', verifyFBToken, async (req, res) => {
+        app.get('/payment', async (req, res) => {
             const email = req.query.email;
             console.log("decoded", req.decoded)
             if (req.decoded.email !== email) {
@@ -258,16 +287,16 @@ async function run() {
             res.send(result)
         });
 
-        app.get('/riders/pending',verifyFBToken, async (req, res) => {
+        app.get('/riders/pending', verifyFBToken, verifyAdmin, async (req, res) => {
             const result = await ridersCollection.find({ status: "pending" }).toArray();
             res.send(result);
         })
 
-        app.get('/riders/active', async (req, res) => {
+        app.get('/riders/active', verifyFBToken, verifyAdmin, async (req, res) => {
             const result = await ridersCollection.find({ status: "active" }).toArray();
             res.send(result);
         })
-        
+
         app.patch('/riders/:id/status', async (req, res) => {
             const id = req.params.id;
             const { status, email } = req.body;
