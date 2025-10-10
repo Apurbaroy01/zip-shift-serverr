@@ -258,14 +258,16 @@ async function run() {
             res.send(result)
         });
 
-        app.get('/riders/pending', async (req, res) => {
+        app.get('/riders/pending',verifyFBToken, async (req, res) => {
             const result = await ridersCollection.find({ status: "pending" }).toArray();
             res.send(result);
         })
+
         app.get('/riders/active', async (req, res) => {
             const result = await ridersCollection.find({ status: "active" }).toArray();
             res.send(result);
         })
+        
         app.patch('/riders/:id/status', async (req, res) => {
             const id = req.params.id;
             const { status, email } = req.body;
