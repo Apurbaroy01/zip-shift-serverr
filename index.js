@@ -159,13 +159,13 @@ async function run() {
             res.send(result); no
         })
 
-        app.get('/parcels',  async (req, res) => {
+        app.get('/parcels', async (req, res) => {
             const { email, payment_status, delivery_status } = req.query;
 
             let query = {};
 
             if (email) {
-                query.email = email; 
+                query.email = email;
             }
 
             if (payment_status) {
@@ -320,6 +320,24 @@ async function run() {
             }
             res.send(result);
         })
+
+        app.get('/riders/available', async(req, res) => {
+            const {region} = req.query;
+            
+            if(!region){
+                return res.status(400).send({message: "region is required"})
+            }
+
+            try{
+                const query = {status: "active", region: region}
+                const riders = await ridersCollection.find(query).toArray();
+                res.send(riders);
+            }
+            catch(error){
+                res.status(500).send({message: "internal server error"})
+            }
+        })
+
 
     }
     catch (error) {
