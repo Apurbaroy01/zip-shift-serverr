@@ -203,6 +203,27 @@ async function run() {
             res.send(result);
         })
 
+        app.patch('/parcels/:id/assign', async (req, res) => {
+            const id = req.params.id;
+            const { riderId, riderName } = req.body;
+
+            try {
+                const query = { _id: new ObjectId(id) }
+                const updatedoc = {
+                    $set: {
+                        delevery_status: "in_transit",
+                        assigned_rider_id: riderId,
+                        assigned_rider_name: riderName,
+                    }
+                }
+                const result = await parcelCollection.updateOne(query, updatedoc)
+                res.send(result);
+            }
+            catch (error) {
+                res.status(500).send({ message: "internal server error" })
+            }
+        })
+
         // tracking----------------------
 
 
@@ -321,20 +342,20 @@ async function run() {
             res.send(result);
         })
 
-        app.get('/riders/available', async(req, res) => {
-            const {region} = req.query;
-            
-            if(!region){
-                return res.status(400).send({message: "region is required"})
+        app.get('/riders/available', async (req, res) => {
+            const { region } = req.query;
+
+            if (!region) {
+                return res.status(400).send({ message: "region is required" })
             }
 
-            try{
-                const query = {status: "active", region: region}
+            try {
+                const query = { status: "active", region: region }
                 const riders = await ridersCollection.find(query).toArray();
                 res.send(riders);
             }
-            catch(error){
-                res.status(500).send({message: "internal server error"})
+            catch (error) {
+                res.status(500).send({ message: "internal server error" })
             }
         })
 
