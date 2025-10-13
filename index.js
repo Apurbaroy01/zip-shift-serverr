@@ -205,14 +205,15 @@ async function run() {
 
         app.patch('/parcels/:id/assign', async (req, res) => {
             const id = req.params.id;
-            const { riderId, riderName } = req.body;
+            const { riderId, riderName, riderEmail } = req.body;
 
             try {
                 const query = { _id: new ObjectId(id) }
                 const updatedoc = {
                     $set: {
-                        delevery_status: "in_transit",
+                        delevery_status: "rider_assigned",
                         assigned_rider_id: riderId,
+                        assigned_rider_email: riderEmail,
                         assigned_rider_name: riderName,
                     }
                 }
@@ -357,7 +358,65 @@ async function run() {
             catch (error) {
                 res.status(500).send({ message: "internal server error" })
             }
-        })
+        });
+
+
+        // GET: Get pending delivery tasks for a rider
+        app.get('/rider/parcels',  async (req, res) => {
+            try {
+                const email = req.query.email;
+
+                if (!email) {
+                    return res.status(400).send({ message: 'Rider email is required' });
+                }
+
+                const query = {
+                    assigned_rider_email: email,
+                    delivery_status: { $in: ['rider_assigned', 'in_transit'] },
+                };
+
+                const options = {
+                    sort: { creation_date: -1 }, // Newest first
+                };
+
+                const parcels = await parcelCollection.find(query, options).toArray();
+                res.send(parcels);
+            } catch (error) {
+                console.error('Error fetching rider tasks:', error);
+                res.status(500).send({ message: 'Failed to get rider tasks' });
+            }
+        });
+
+
+        // GET: Load completed parcel deliveries for a rider
+        app.get('/rider/completed-parcels', async (req, res) => {
+            try {
+                const email = req.query.email;
+
+                if (!email) {
+                    return res.status(400).send({ message: 'Rider email is required' });
+                }
+
+                const query = {
+                    assigned_rider_email: email,
+                    delivery_status: {
+                        $in: ['delivered', 'service_center_delivered']
+                    },
+                };
+
+                const options = {
+                    sort: { creation_date: -1 }, // Latest first
+                };
+
+                const completedParcels = await parcelCollection.find(query, options).toArray();
+
+                res.send(completedParcels);
+
+            } catch (error) {
+                console.error('Error loading completed parcels:', error);
+                res.status(500).send({ message: 'Failed to load completed deliveries' });
+            }
+        });
 
 
     }
