@@ -75,7 +75,7 @@ async function run() {
             }
 
 
-        }
+        };
 
 
         const verifyAdmin = async (req, res, next) => {
@@ -86,7 +86,17 @@ async function run() {
                 return res.status(403).send({ message: "forbidden access" })
             }
             next();
-        }
+        };
+
+        const verifyRider = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email }
+            const user = await userCollection.findOne(query)
+            if (user?.role !== "rider") {
+                return res.status(403).send({ message: "forbidden access" })
+            }
+            next();
+        };
 
         // user---------------------
         app.post('/user', async (req, res) => {
@@ -223,7 +233,10 @@ async function run() {
             catch (error) {
                 res.status(500).send({ message: "internal server error" })
             }
-        })
+        });
+
+
+
 
         // tracking----------------------
 
@@ -362,7 +375,7 @@ async function run() {
 
 
         // GET: Get pending delivery tasks for a rider
-        app.get('/rider/parcels',  async (req, res) => {
+        app.get('/rider/parcels', async (req, res) => {
             try {
                 const email = req.query.email;
 
@@ -372,7 +385,7 @@ async function run() {
 
                 const query = {
                     assigned_rider_email: email,
-                    delivery_status: { $in: ['rider_assigned', 'in_transit'] },
+                    delevery_status: { $in: ['rider_assigned', 'in_transit'] },
                 };
 
                 const options = {
@@ -384,6 +397,34 @@ async function run() {
             } catch (error) {
                 console.error('Error fetching rider tasks:', error);
                 res.status(500).send({ message: 'Failed to get rider tasks' });
+            }
+        });
+
+
+        app.patch("/parcels/:id/status", async (req, res) => {
+            const parcelId = req.params.id;
+            const { status } = req.body;
+            const updatedDoc = {
+                delevery_status: status
+            }
+
+            if (status === 'in_transit') {
+                updatedDoc.picked_at = new Date().toISOString()
+            }
+            else if (status === 'delivered') {
+                updatedDoc.delivered_at = new Date().toISOString()
+            }
+
+            try {
+                const result = await parcelCollection.updateOne(
+                    { _id: new ObjectId(parcelId) },
+                    {
+                        $set: updatedDoc
+                    }
+                );
+                res.send(result);
+            } catch (error) {
+                res.status(500).send({ message: "Failed to update status" });
             }
         });
 
