@@ -170,7 +170,7 @@ async function run() {
         })
 
         app.get('/parcels', async (req, res) => {
-            const { email, payment_status, delivery_status } = req.query;
+            const { email, payment_status, delevery_status } = req.query;
 
             let query = {};
 
@@ -182,8 +182,8 @@ async function run() {
                 query.payment_status = payment_status;
             }
 
-            if (delivery_status) {
-                query.delivery_status = delivery_status;
+            if (delevery_status) {
+                query.delevery_status = delevery_status;
             }
 
             const options = {
@@ -440,7 +440,7 @@ async function run() {
 
                 const query = {
                     assigned_rider_email: email,
-                    delivery_status: {
+                    delevery_status: {
                         $in: ['delivered', 'service_center_delivered']
                     },
                 };
