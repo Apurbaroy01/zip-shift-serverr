@@ -460,6 +460,22 @@ async function run() {
         });
 
 
+
+        app.patch("/parcels/:id/cashout", async (req, res) => {
+            const id = req.params.id;
+            const result = await parcelCollection.updateOne(
+                { _id: new ObjectId(id) },
+                {
+                    $set: {
+                        cashout_status: "cashed_out",
+                        cashed_out_at: new Date()
+                    }
+                }
+            );
+            res.send(result);
+        });
+
+
     }
     catch (error) {
         console.error("Error❌", error.message)
