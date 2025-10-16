@@ -48,6 +48,7 @@ async function run() {
         const parcelCollection = client.db("zip_shift").collection("parcels");
         const paymentCollection = client.db("zip_shift").collection("payment");
         const ridersCollection = client.db("zip_shift").collection("riders");
+        const trackingsCollection = client.db("zip_shift").collection("tracking");
 
 
         // custom middleware verify firebase token
@@ -241,21 +242,30 @@ async function run() {
         // tracking----------------------
 
 
-        app.post("/tracking", async (req, res) => {
-            const { tracking_id, parcel_id, status, message, updated_by = '' } = req.body;
+        app.get("/trackings/:trackingId", async (req, res) => {
+            const trackingId = req.params.trackingId;
 
-            const log = {
-                tracking_id,
-                parcel_id: parcel_id ? new ObjectId(parcel_id) : undefined,
-                status,
-                message,
-                time: new Date(),
-                updated_by,
-            };
+            const updates = await trackingsCollection
+                .find({ tracking_id: trackingId })
+                .sort({ timestamp: 1 }) // sort by time ascending
+                .toArray();
 
-            const result = await trackingCollection.insertOne(log);
-            res.send({ success: true, insertedId: result.insertedId });
+            res.json(updates);
         });
+
+        app.post("/trackings", async (req, res) => {
+            const update = req.body;
+            console.log(update);
+
+            update.timestamp = new Date(); // ensure correct timestamp
+            if (!update.tracking_id || !update.status) {
+                return res.status(400).json({ message: "tracking_id and status are required." });
+            }
+
+            const result = await trackingsCollection.insertOne(update);
+            res.status(201).json(result);
+        });
+
         // payment section--------------------
 
         app.post('/cteate_payment_intant', async (req, res) => {
