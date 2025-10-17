@@ -238,6 +238,31 @@ async function run() {
 
 
 
+        app.get('/parcels/delivery/status-count', async (req, res) => {
+            const pipeline = [
+                {
+                    $group: {
+                        _id: '$delivery_status',
+                        count: {
+                            $sum: 1
+                        }
+                    }
+                },
+                {
+                    $project: {
+                        status: '$_id',
+                        count: 1,
+                        _id: 0
+                    }
+                }
+            ];
+
+            const result = await parcelCollection.aggregate(pipeline).toArray();
+            res.send(result);
+        })
+
+
+
 
         // tracking----------------------
 
@@ -328,6 +353,16 @@ async function run() {
         // riders---------
         app.post('/riders', async (req, res) => {
             const rider = req.body;
+
+            const email = req.body.email;
+            const existingRider = await ridersCollection.findOne({ email: email })
+            if (existingRider) {
+                return res.status(400).send({
+                    success: false,
+                    message: "This email is already registered as a rider."
+                });
+            }
+
             const result = await ridersCollection.insertOne(rider)
             res.send(result)
         });
