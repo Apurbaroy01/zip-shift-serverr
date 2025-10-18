@@ -266,6 +266,14 @@ async function run() {
 
         // tracking----------------------
 
+        app.get("/api/parcel/tracking/:id", async (req, res) => {
+            const { id } = req.params;
+            const query = { tracking_id: id };
+            const result = await parcelCollection.find(query).toArray();
+            res.send(result);
+        });
+
+
 
         app.get("/trackings/:trackingId", async (req, res) => {
             const trackingId = req.params.trackingId;
