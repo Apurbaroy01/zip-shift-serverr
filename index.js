@@ -125,7 +125,7 @@ async function run() {
             res.send(result)
         })
         // user admin make ar janno---------
-        app.patch('/users/:id/role', verifyFBToken, verifyAdmin, async (req, res) => {
+        app.patch('/users/:id/role',  async (req, res) => {
             const { id } = req.params;
             const { role } = req.body;
 
@@ -146,6 +146,7 @@ async function run() {
 
         app.get('/users/:email/role', async (req, res) => {
             const { email } = req.params;
+            console.log("email role",email)
 
             if (!email) {
                 return res.status(400).send({ message: "email is requrd" })
@@ -361,7 +362,7 @@ async function run() {
         // riders---------
         app.post('/riders', async (req, res) => {
             const rider = req.body;
-
+            
             const email = req.body.email;
             const existingRider = await ridersCollection.findOne({ email: email })
             if (existingRider) {
@@ -375,12 +376,12 @@ async function run() {
             res.send(result)
         });
 
-        app.get('/riders/pending', verifyFBToken, verifyAdmin, async (req, res) => {
+        app.get('/riders/pending',   async (req, res) => {
             const result = await ridersCollection.find({ status: "pending" }).toArray();
             res.send(result);
         })
 
-        app.get('/riders/active', verifyFBToken, verifyAdmin, async (req, res) => {
+        app.get('/riders/active', async (req, res) => {
             const result = await ridersCollection.find({ status: "active" }).toArray();
             res.send(result);
         })
