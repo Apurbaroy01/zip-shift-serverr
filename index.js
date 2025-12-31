@@ -125,7 +125,7 @@ async function run() {
             res.send(result)
         })
         // user admin make ar janno---------
-        app.patch('/users/:id/role',  async (req, res) => {
+        app.patch('/users/:id/role', async (req, res) => {
             const { id } = req.params;
             const { role } = req.body;
 
@@ -146,7 +146,7 @@ async function run() {
 
         app.get('/users/:email/role', async (req, res) => {
             const { email } = req.params;
-            console.log("email role",email)
+            console.log("email role", email)
 
             if (!email) {
                 return res.status(400).send({ message: "email is requrd" })
@@ -240,27 +240,29 @@ async function run() {
 
 
         app.get('/parcels/delivery/status-count', async (req, res) => {
-            const pipeline = [
-                {
-                    $group: {
-                        _id: '$delivery_status',
-                        count: {
-                            $sum: 1
+            try {
+                const result = await parcelCollection.aggregate([
+                    {
+                        $group: {
+                            _id: '$delivery_status',
+                            count: { $sum: 1 }
+                        }
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            status: '$_id',
+                            count: 1
                         }
                     }
-                },
-                {
-                    $project: {
-                        status: '$_id',
-                        count: 1,
-                        _id: 0
-                    }
-                }
-            ];
+                ]).toArray();
 
-            const result = await parcelCollection.aggregate(pipeline).toArray();
-            res.send(result);
-        })
+                res.send(result);
+            } catch (error) {
+                res.status(500).send({ message: 'Something went wrong' });
+            }
+        });
+
 
 
 
@@ -362,7 +364,7 @@ async function run() {
         // riders---------
         app.post('/riders', async (req, res) => {
             const rider = req.body;
-            
+
             const email = req.body.email;
             const existingRider = await ridersCollection.findOne({ email: email })
             if (existingRider) {
@@ -376,7 +378,7 @@ async function run() {
             res.send(result)
         });
 
-        app.get('/riders/pending',   async (req, res) => {
+        app.get('/riders/pending', async (req, res) => {
             const result = await ridersCollection.find({ status: "pending" }).toArray();
             res.send(result);
         })
@@ -530,6 +532,76 @@ async function run() {
         });
 
 
+        // user length-------------------------
+
+        app.get("/riders/status-count", async (req, res) => {
+            const result = await ridersCollection.aggregate([
+                {
+                    $group: {
+                        _id: "$status",
+                        count: { $sum: 1 }
+                    }
+                }
+            ]).toArray();
+
+            console.log(result); // <-- এটা দেখুন
+
+            const counts = {
+                active: 0,
+                pending: 0
+            };
+
+            result.forEach(item => {
+                if (item._id === "active") counts.active = item.count;
+                if (item._id === "pending") counts.pending = item.count;
+            });
+
+            res.send(counts);
+        });
+
+
+        app.get("/parcel/status-count", async (req, res) => {
+            try {
+                const { email } = req.query;
+
+                // 🟢 Conditional match stage
+                const matchStage = email
+                    ? { $match: { assigned_rider_email: email } }
+                    : null;
+
+                const pipeline = [
+                    ...(matchStage ? [matchStage] : []),
+                    {
+                        $group: {
+                            _id: "$delevery_status",
+                            count: { $sum: 1 }
+                        }
+                    }
+                ];
+
+                const result = await parcelCollection.aggregate(pipeline).toArray();
+
+                const counts = {
+                    not_collected: 0,
+                    rider_assigned: 0,
+                    delivered: 0
+                };
+
+                result.forEach(item => {
+                    counts[item._id] = item.count;
+                });
+
+                res.send(counts);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: "Failed to get parcel status count" });
+            }
+        });
+
+
+
+
+
     }
     catch (error) {
         console.error("Error❌", error.message)
@@ -545,3 +617,5 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
 })
+
+
